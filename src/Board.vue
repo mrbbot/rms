@@ -574,6 +574,10 @@ svg.canvas {
     color: inherit;
   }
 
+  input {
+    height: 24px;
+  }
+
   .row {
     display: flex;
     .grow {
