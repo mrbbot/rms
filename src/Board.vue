@@ -568,6 +568,7 @@ svg.canvas {
   p {
     margin-top: 0.5rem;
     margin-bottom: 0;
+    font-family: "Noto Serif", serif;
   }
 
   a {
