@@ -35,7 +35,7 @@ selected.
 Once selected, you can delete nodes and/or connectors by pressing the
 <kbd>Delete</kbd> key.
 
-### Copying Nodes and Connectors
+### Copying Nodes and Connectors (Chrome Only)
 
 Once selected, you can copy nodes and/or connectors by pressing
 <kbd>Ctrl</kbd> + <kbd>C</kbd>. To paste, move your mouse to where you'd like to

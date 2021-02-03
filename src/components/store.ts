@@ -107,45 +107,9 @@ export const store = reactive<Store>({
   name: "",
 
   selected: new Set<number>(),
-  // TODO: make empty
-  nextId: 8,
-  nodes: {
-    0: { id: 0, x: -1, y: -1, type: "START" },
-    1: { id: 1, x: -1, y: 0, type: "REG", op: "-", index: 1 },
-    2: { id: 2, x: 0, y: 0, type: "REG", op: "+", index: 2 },
-    3: { id: 3, x: -1, y: 1, type: "HALT" },
-  },
-  connectors: {
-    4: {
-      id: 4,
-      n1: 0,
-      d1: Direction.SOUTH,
-      n2: 1,
-      d2: Direction.NORTH,
-    },
-    5: {
-      id: 5,
-      n1: 1,
-      d1: Direction.EAST,
-      n2: 2,
-      d2: Direction.WEST,
-    },
-    6: {
-      id: 6,
-      n1: 2,
-      d1: Direction.WEST,
-      n2: 1,
-      d2: Direction.EAST,
-    },
-    7: {
-      id: 7,
-      n1: 1,
-      d1: Direction.SOUTH,
-      n2: 3,
-      d2: Direction.NORTH,
-      alt: true,
-    },
-  },
+  nextId: 0,
+  nodes: {},
+  connectors: {},
 
   shiftKey: false,
   ctrlKey: false,

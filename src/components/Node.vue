@@ -26,6 +26,7 @@
 import { defineComponent } from "vue";
 import { Direction, nodeConnectionPointRadius } from "./constants";
 import { store, mouseGridCoords } from "./store";
+import { persist } from "./data";
 
 export default defineComponent({
   name: "Node",
@@ -104,6 +105,7 @@ export default defineComponent({
         store.selected.add(id);
         store.connectorStartNode = undefined;
         store.connectorStartDirection = undefined;
+        persist();
       }
     },
   },

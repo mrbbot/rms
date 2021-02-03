@@ -1,3 +1,4 @@
+import { get, set } from "idb-keyval";
 import {
   Connector,
   defaultViewportCoords,
@@ -9,18 +10,18 @@ import {
 import { loadRegisterContents, registerContents } from "./machine";
 import { gridSpacing } from "./constants";
 
-const $download = document.getElementById("download") as HTMLAnchorElement;
-
 interface SavedData {
   $rm: any;
   name: string;
   nodes: Node[];
   connectors: Connector[];
   registers: RegisterContents;
-  // TODO: next id from max id
+  viewportX?: number;
+  viewportY?: number;
+  playSpeed?: number;
 }
 
-export function save() {
+export function save(saveExtra = false): SavedData {
   const { name, nodes, connectors } = store;
   const registers = Object.fromEntries(Object.entries(registerContents));
   const data: SavedData = {
@@ -30,23 +31,15 @@ export function save() {
     connectors: Object.values(connectors),
     registers,
   };
-  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  $download.href = url;
-  $download.download = `${name || "Machine"}.json`;
-  $download.click();
-  URL.revokeObjectURL(url);
+  if (saveExtra) {
+    data.viewportX = store.viewportX;
+    data.viewportY = store.viewportY;
+    data.playSpeed = store.playSpeed;
+  }
+  return data;
 }
 
-export function open(text: string, fileName: string) {
-  let data: SavedData;
-  try {
-    data = JSON.parse(text);
-    if (data.$rm !== true) return;
-  } catch (e) {
-    return;
-  }
-
+export function load(data: SavedData, fileName?: string) {
   // Reset everything
   store.selected.clear();
   store.movingNode = undefined;
@@ -64,7 +57,9 @@ export function open(text: string, fileName: string) {
   let nodeYTotal = 0;
 
   // Load data
-  store.name = data.name || fileName.substring(0, fileName.lastIndexOf("."));
+  store.name =
+    data.name ||
+    (fileName ? fileName.substring(0, fileName.lastIndexOf(".")) : "");
   for (const node of data.nodes) {
     store.nodes[node.id] = node;
     nodeXTotal += node.x;
@@ -79,12 +74,32 @@ export function open(text: string, fileName: string) {
 
   store.nextId = maxId + 1;
 
-  // Center viewport on machine
-  const averageNodeX = nodeXTotal / data.nodes.length;
-  const averageNodeY = nodeYTotal / data.nodes.length;
-  const defaultViewport = defaultViewportCoords();
-  store.viewportX = defaultViewport[0] - averageNodeX * gridSpacing;
-  store.viewportY = defaultViewport[1] - averageNodeY * gridSpacing;
+  if (data.viewportX !== undefined && data.viewportY !== undefined) {
+    store.viewportX = data.viewportX;
+    store.viewportY = data.viewportY;
+  } else {
+    // Center viewport on machine
+    const averageNodeX = nodeXTotal / data.nodes.length;
+    const averageNodeY = nodeYTotal / data.nodes.length;
+    const defaultViewport = defaultViewportCoords();
+    store.viewportX = defaultViewport[0] - averageNodeX * gridSpacing;
+    store.viewportY = defaultViewport[1] - averageNodeY * gridSpacing;
+  }
+  if (data.playSpeed !== undefined) {
+    store.playSpeed = data.playSpeed;
+  }
+}
+
+export function persist() {
+  console.log("Persisting");
+  const data = save(true);
+  // noinspection JSIgnoredPromiseFromCall
+  set("data", JSON.stringify(data));
+}
+
+export async function loadPersisted() {
+  const data = await get<string>("data");
+  if (data !== undefined) load(JSON.parse(data));
 }
 
 interface ClipboardData {

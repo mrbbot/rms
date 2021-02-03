@@ -35,6 +35,21 @@
     </g>
 
     <g :transform="`translate(${store.viewportX}, ${store.viewportY})`">
+      <a
+        v-if="store.nextId === 0"
+        href="https://github.com/mrbbot/rms/blob/master/README.md"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <text
+          class="get-started"
+          text-anchor="middle"
+          dominant-baseline="middle"
+        >
+          Click here to get started
+        </text>
+      </a>
+
       <circle
         v-if="store.ctrlKey"
         class="paste-marker"
@@ -135,8 +150,14 @@
     </p>
     <hr />
     <div class="row">
-      <input class="grow" type="text" placeholder="Name" v-model="store.name" />
-      <button :disabled="active" @click="save">Save</button>
+      <input
+        class="grow"
+        type="text"
+        placeholder="Name"
+        v-model="store.name"
+        @change="persist"
+      />
+      <button :disabled="active" @click="onSaveClick">Save</button>
       <button :disabled="active" @click="onOpenClick">Open</button>
     </div>
     <hr />
@@ -152,6 +173,7 @@
         max="9"
         step="1"
         v-model.number="store.playSpeed"
+        @change="persist"
       />
     </div>
     <hr />
@@ -176,11 +198,13 @@
           placeholder="0"
           :disabled="store.playing"
           v-model.number="registerContents[register.index]"
+          @change="persist"
         />
       </div>
     </div>
   </div>
 
+  <a ref="download" style="display: none" />
   <input ref="file" type="file" style="display: none" @change="onFileChange" />
 </template>
 
@@ -200,7 +224,7 @@ import {
   active,
 } from "./components/store";
 import { registerContents, reset, step, playPause } from "./components/machine";
-import { save, open, copyData, pasteData } from "./components/data";
+import { save, load, copyData, pasteData, persist } from "./components/data";
 import {
   Direction,
   gridSpacing,
@@ -244,10 +268,10 @@ export default defineComponent({
       maxRegisterIndex,
       registerContents,
       active,
-      save,
       reset,
       step,
       playPause,
+      persist,
     };
   },
   computed: {
@@ -327,12 +351,20 @@ export default defineComponent({
     },
     onMouseUp(e: MouseEvent) {
       // console.log("Board: onMouseUp");
+      store.selected.clear();
 
+      if (
+        store.downMouseX !== undefined &&
+        store.downMouseY !== undefined &&
+        store.downViewportX !== undefined &&
+        store.downViewportY !== undefined
+      ) {
+        persist();
+      }
       store.downMouseX = undefined;
       store.downMouseY = undefined;
       store.downViewportX = undefined;
       store.downViewportY = undefined;
-      store.selected.clear();
 
       if (store.playing) return;
 
@@ -382,6 +414,7 @@ export default defineComponent({
         store.movingNode = undefined;
         store.movingNodeStartX = undefined;
         store.movingNodeStartY = undefined;
+        persist();
       }
     },
     async onKeyDown(e: KeyboardEvent) {
@@ -409,6 +442,7 @@ export default defineComponent({
           const text = await navigator.clipboard.readText();
           console.log("paste", text);
           pasteData(text);
+          persist();
         }
       } else if (store.selected.size && e.key === "Delete") {
         e.preventDefault();
@@ -428,6 +462,7 @@ export default defineComponent({
           )
         );
         store.selected.clear();
+        persist();
       } else if (store.selected.size === 1) {
         e.preventDefault();
         const node = store.nodes[store.selected.values().next().value];
@@ -448,12 +483,25 @@ export default defineComponent({
             node.comment = node.comment.substring(0, node.comment.length - 1);
           }
         }
+        persist();
       }
     },
     onKeyUp(e: KeyboardEvent) {
       // console.log("Board: onKeyUp:", e.key);
       store.shiftKey = e.shiftKey;
       store.ctrlKey = e.ctrlKey || e.metaKey;
+    },
+    onSaveClick() {
+      const data = save();
+      const blob = new Blob([JSON.stringify(data)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const download = this.$refs.download as HTMLAnchorElement;
+      download.href = url;
+      download.download = `${store.name || "Machine"}.json`;
+      download.click();
+      URL.revokeObjectURL(url);
     },
     onOpenClick() {
       (this.$refs.file as HTMLInputElement).click();
@@ -464,8 +512,17 @@ export default defineComponent({
       const reader = new FileReader();
       const file = target.files[0];
       reader.addEventListener("load", () => {
-        open(reader.result as string, file.name);
-        target.value = "";
+        let data: SavedData;
+        try {
+          data = JSON.parse(reader.result as string);
+          if (data.$rm !== true) return;
+        } catch (e) {
+          return;
+        } finally {
+          target.value = "";
+        }
+        load(data, file.name);
+        persist();
       });
       reader.readAsText(file);
     },
@@ -503,6 +560,10 @@ svg.canvas {
   width: calc(100% - 300px);
   height: 100%;
   background-color: white;
+
+  .get-started {
+    fill: #666666;
+  }
 
   .node {
     &.active {
