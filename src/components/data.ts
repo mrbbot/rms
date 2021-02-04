@@ -78,12 +78,18 @@ export function load(data: SavedData, fileName?: string) {
     store.viewportX = data.viewportX;
     store.viewportY = data.viewportY;
   } else {
-    // Center viewport on machine
-    const averageNodeX = nodeXTotal / data.nodes.length;
-    const averageNodeY = nodeYTotal / data.nodes.length;
     const defaultViewport = defaultViewportCoords();
-    store.viewportX = defaultViewport[0] - averageNodeX * gridSpacing;
-    store.viewportY = defaultViewport[1] - averageNodeY * gridSpacing;
+    if (data.nodes.length > 0) {
+      // Center viewport on machine
+      const averageNodeX = nodeXTotal / data.nodes.length;
+      const averageNodeY = nodeYTotal / data.nodes.length;
+      store.viewportX = defaultViewport[0] - averageNodeX * gridSpacing;
+      store.viewportY = defaultViewport[1] - averageNodeY * gridSpacing;
+    } else {
+      // If there are no nodes in the machine, use default (avoids divide by 0)
+      store.viewportX = defaultViewport[0];
+      store.viewportY = defaultViewport[1];
+    }
   }
   if (data.playSpeed !== undefined) {
     store.playSpeed = data.playSpeed;
