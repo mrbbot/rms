@@ -164,9 +164,40 @@
         v-model="store.name"
         @change="persist"
       />
-      <button :disabled="active" @click="onSaveClick">Save</button>
-      <button :disabled="active" @click="onOpenClick">Open</button>
-      <button :disabled="active" @click="onExportClick">Export</button>
+    </div>
+    <div class="row">
+      <button
+        class="grow"
+        :disabled="active"
+        @click="onSaveClick"
+        title="Save to File"
+      >
+        Save
+      </button>
+      <button
+        class="grow"
+        :disabled="active"
+        @click="onOpenClick"
+        title="Open from File"
+      >
+        Open
+      </button>
+      <button
+        class="grow"
+        :disabled="active"
+        @click="onExportClick"
+        title="Export to SVG"
+      >
+        Export
+      </button>
+      <button
+        class="grow"
+        :disabled="active || clipboardError"
+        @click="onShareClick"
+        :title="`Copy URL${clipboardError ? ' (Clipboard Unsupported)' : ''}`"
+      >
+        Share
+      </button>
     </div>
     <hr />
     <div class="row">
@@ -212,13 +243,15 @@
     </div>
   </div>
 
-  <a ref="download" style="display: none" />
-  <input ref="file" type="file" style="display: none" @change="onFileChange" />
-  <svg style="display: none">
-    <defs ref="exportDefs">
-      <ConnectorDefs export />
-    </defs>
-  </svg>
+  <div class="dummy">
+    <a ref="download" />
+    <input ref="file" type="file" @change="onFileChange" />
+    <svg>
+      <defs ref="exportDefs">
+        <ConnectorDefs export />
+      </defs>
+    </svg>
+  </div>
 </template>
 
 <script lang="ts">
@@ -292,6 +325,9 @@ export default defineComponent({
       persist,
     };
   },
+  data() {
+    return { clipboardError: false };
+  },
   computed: {
     hoverEnabled() {
       return store.movingNode === undefined && !store.playing;
@@ -337,6 +373,43 @@ export default defineComponent({
     window.removeEventListener("keyup", this.onKeyUp);
   },
   methods: {
+    async copyText(text: string): Promise<boolean> {
+      try {
+        const permission = await navigator.permissions.query({
+          name: "clipboard-write" as any,
+        });
+        if (permission.state === "granted" || permission.state === "prompt") {
+          await navigator.clipboard.writeText(text);
+        }
+      } catch (e) {
+        this.clipboardError = true;
+      }
+    },
+    async pasteText(): Promise<string | null> {
+      try {
+        const permission = await navigator.permissions.query({
+          name: "clipboard-read" as any,
+        });
+        if (permission.state === "granted" || permission.state === "prompt") {
+          return await navigator.clipboard.readText();
+        }
+      } catch (e) {
+        this.clipboardError = true;
+        return "";
+      }
+    },
+    downloadFile(name: string, contents: string, type: string) {
+      const blob = new Blob([contents], {
+        type,
+      });
+      const url = URL.createObjectURL(blob);
+      const download = this.$refs.download as HTMLAnchorElement;
+      download.href = url;
+      download.download = name;
+      download.click();
+      URL.revokeObjectURL(url);
+    },
+
     onMouseMove(e: MouseEvent) {
       // console.log("Board: onMouseMove");
       store.mouseX = e.clientX;
@@ -442,26 +515,15 @@ export default defineComponent({
       store.ctrlKey = ctrlKey;
       if (ctrlKey && e.key === "c") {
         e.preventDefault();
-        const permission = await navigator.permissions.query({
-          name: "clipboard-write" as any,
-        });
-        if (permission.state === "granted" || permission.state === "prompt") {
-          const data = copyData();
-          console.log("copy", data);
-          await navigator.clipboard.writeText(data);
-          console.log("Written to clipboard!");
-        }
+        const data = copyData();
+        await this.copyText(data);
+        console.log("Copied", data);
       } else if (ctrlKey && e.key === "v") {
         e.preventDefault();
-        const permission = await navigator.permissions.query({
-          name: "clipboard-read" as any,
-        });
-        if (permission.state === "granted" || permission.state === "prompt") {
-          const text = await navigator.clipboard.readText();
-          console.log("paste", text);
-          pasteData(text);
-          persist();
-        }
+        const text = await this.pasteText();
+        console.log("Pasted", text);
+        pasteData(text);
+        persist();
       } else if (store.selected.size && e.key === "Delete") {
         e.preventDefault();
         // console.log(
@@ -509,17 +571,7 @@ export default defineComponent({
       store.shiftKey = e.shiftKey;
       store.ctrlKey = e.ctrlKey || e.metaKey;
     },
-    downloadFile(name: string, contents: string, type: string) {
-      const blob = new Blob([contents], {
-        type,
-      });
-      const url = URL.createObjectURL(blob);
-      const download = this.$refs.download as HTMLAnchorElement;
-      download.href = url;
-      download.download = name;
-      download.click();
-      URL.revokeObjectURL(url);
-    },
+
     onSaveClick() {
       const data = save();
       this.downloadFile(
@@ -584,6 +636,11 @@ export default defineComponent({
         "</svg>",
       ].join("\n");
       this.downloadFile(`${store.name || "Machine"}.svg`, svg, "image/svg+xml");
+    },
+    async onShareClick() {
+      const data = save();
+      const url = `${window.location.origin}/#${btoa(JSON.stringify(data))}`;
+      await this.copyText(url);
     },
   },
 });
@@ -715,6 +772,9 @@ svg.canvas {
     > *:not(:last-child) {
       margin-right: 0.5rem;
     }
+    + .row {
+      margin-top: 0.5rem;
+    }
   }
 
   .column {
@@ -733,5 +793,9 @@ svg.canvas {
   .canvas .active {
     color: #4caf50;
   }
+}
+
+.dummy {
+  display: none;
 }
 </style>
