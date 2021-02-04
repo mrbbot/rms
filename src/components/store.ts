@@ -7,6 +7,8 @@ import {
   nodeTextWidth,
   nodeTextHeight,
   directionOffsets,
+  nodeCommentWidth,
+  nodeCommentHeight,
 } from "./constants";
 import { boxBox, boxLine } from "intersects";
 
@@ -209,6 +211,29 @@ export const selectionBoundingBox = computed(() => {
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 });
 
+export const nodeBoundingBoxes = computed(() => {
+  const nodes = renderableNodesConnectors.value.nodes;
+  const nodeSize = 2 * nodeRadius;
+  return nodes.map((node) => {
+    let width = nodeSize,
+      height = nodeSize;
+    if (node.type === "CMT") {
+      width = nodeCommentWidth(node.comment);
+      height = nodeCommentHeight;
+    } else if (node.type !== "REG") {
+      width = nodeTextWidth;
+      height = nodeTextHeight;
+    }
+    return {
+      id: node.id,
+      x: node.x - width / 2,
+      y: node.y - height / 2,
+      width,
+      height,
+    };
+  });
+});
+
 export const selectedIds = computed(() => {
   const selected: number[] = [];
   const boundingBox = selectionBoundingBox.value;
@@ -216,24 +241,12 @@ export const selectedIds = computed(() => {
   const { width, height } = boundingBox;
   const x = boundingBox.x - store.viewportX;
   const y = boundingBox.y - store.viewportY;
-  const { nodes, connectors } = renderableNodesConnectors.value;
-
-  const nodeSize = 2 * nodeRadius;
+  const nodes = nodeBoundingBoxes.value;
+  const connectors = renderableNodesConnectors.value.connectors;
 
   for (const node of nodes) {
-    const reg = node.type === "REG";
-    const nodeWidth = reg ? nodeSize : nodeTextWidth;
-    const nodeHeight = reg ? nodeSize : nodeTextHeight;
-    boxBox(
-      x,
-      y,
-      width,
-      height,
-      node.x - nodeWidth / 2,
-      node.y - nodeHeight / 2,
-      nodeWidth,
-      nodeHeight
-    ) && selected.push(node.id);
+    boxBox(x, y, width, height, node.x, node.y, node.width, node.height) &&
+      selected.push(node.id);
   }
 
   for (const connector of connectors) {

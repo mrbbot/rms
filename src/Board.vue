@@ -34,30 +34,35 @@
       </Node>
     </g>
 
-    <g :transform="`translate(${store.viewportX}, ${store.viewportY})`">
-      <a
-        v-if="store.nextId === 0"
-        href="https://github.com/mrbbot/rms/blob/master/README.md"
-        target="_blank"
-        rel="noopener noreferrer"
+    <a
+      v-if="store.nextId === 0"
+      href="https://github.com/mrbbot/rms/blob/master/README.md"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <text
+        class="get-started"
+        x="50%"
+        y="50%"
+        text-anchor="middle"
+        dominant-baseline="middle"
       >
-        <text
-          class="get-started"
-          text-anchor="middle"
-          dominant-baseline="middle"
-        >
-          Click here to get started
-        </text>
-      </a>
+        Click here to get started
+      </text>
+    </a>
 
-      <circle
-        v-if="store.ctrlKey"
-        class="paste-marker"
-        :r="nodeConnectionPointRadius"
-        :cx="mouseGridCoords[0] * gridSpacing"
-        :cy="mouseGridCoords[1] * gridSpacing"
-      />
+    <circle
+      v-if="store.ctrlKey"
+      class="paste-marker"
+      :r="nodeConnectionPointRadius"
+      :cx="mouseGridCoords[0] * gridSpacing + store.viewportX"
+      :cy="mouseGridCoords[1] * gridSpacing + store.viewportY"
+    />
 
+    <g
+      ref="viewport"
+      :transform="`translate(${store.viewportX}, ${store.viewportY})`"
+    >
       <Connector
         v-for="connector in renderableNodesConnectors.connectors"
         :key="connector.id"
@@ -159,6 +164,7 @@
       />
       <button :disabled="active" @click="onSaveClick">Save</button>
       <button :disabled="active" @click="onOpenClick">Open</button>
+      <button :disabled="active" @click="onExportClick">Export</button>
     </div>
     <hr />
     <div class="row">
@@ -206,6 +212,11 @@
 
   <a ref="download" style="display: none" />
   <input ref="file" type="file" style="display: none" @change="onFileChange" />
+  <svg style="display: none">
+    <defs ref="exportDefs">
+      <ConnectorDefs export />
+    </defs>
+  </svg>
 </template>
 
 <script lang="ts">
@@ -222,6 +233,7 @@ import {
   movingNodeGridCoords,
   maxRegisterIndex,
   active,
+  nodeBoundingBoxes,
 } from "./components/store";
 import { registerContents, reset, step, playPause } from "./components/machine";
 import { save, load, copyData, pasteData, persist } from "./components/data";
@@ -231,11 +243,15 @@ import {
   nodeRegisterDirections,
   nodeTextDirections,
   nodeConnectionPointRadius,
+  nodeRadius,
 } from "./components/constants";
 import NodeContentsText from "./components/NodeContentsText.vue";
 import NodeContentsRegister from "./components/NodeContentsRegister.vue";
 import NodeComponent from "./components/Node.vue";
 import NodeContentsComment from "./components/NodeContentsComment.vue";
+import exportCssPath from "./export.css.txt";
+
+let exportCss: string | undefined = undefined;
 
 export default defineComponent({
   name: "Board",
@@ -491,17 +507,24 @@ export default defineComponent({
       store.shiftKey = e.shiftKey;
       store.ctrlKey = e.ctrlKey || e.metaKey;
     },
-    onSaveClick() {
-      const data = save();
-      const blob = new Blob([JSON.stringify(data)], {
-        type: "application/json",
+    downloadFile(name: string, contents: string, type: string) {
+      const blob = new Blob([contents], {
+        type,
       });
       const url = URL.createObjectURL(blob);
       const download = this.$refs.download as HTMLAnchorElement;
       download.href = url;
-      download.download = `${store.name || "Machine"}.json`;
+      download.download = name;
       download.click();
       URL.revokeObjectURL(url);
+    },
+    onSaveClick() {
+      const data = save();
+      this.downloadFile(
+        `${store.name || "Machine"}.json`,
+        JSON.stringify(data),
+        "application/json"
+      );
     },
     onOpenClick() {
       (this.$refs.file as HTMLInputElement).click();
@@ -525,6 +548,40 @@ export default defineComponent({
         persist();
       });
       reader.readAsText(file);
+    },
+    async onExportClick() {
+      if (exportCss === undefined) {
+        exportCss = await (await fetch(exportCssPath)).text();
+      }
+      let minX = 0;
+      let minY = 0;
+      let maxX = 0;
+      let maxY = 0;
+      for (const node of nodeBoundingBoxes.value) {
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x + node.width);
+        maxY = Math.max(maxY, node.y + node.height);
+      }
+      const margin = nodeRadius;
+      minX -= margin;
+      minY -= margin;
+      maxX += margin;
+      maxY += margin;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      const svg = [
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}">`,
+        "<style>",
+        exportCss,
+        "</style>",
+        this.$refs.exportDefs.outerHTML,
+        '<g class="root">',
+        this.$refs.viewport.innerHTML,
+        "</g>",
+        "</svg>",
+      ].join("\n");
+      this.downloadFile(`${store.name || "Machine"}.svg`, svg, "image/svg+xml");
     },
   },
 });
@@ -634,6 +691,10 @@ svg.canvas {
 
   a {
     color: inherit;
+  }
+
+  button {
+    padding: 0 2px;
   }
 
   input {

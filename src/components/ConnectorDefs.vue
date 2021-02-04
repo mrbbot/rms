@@ -40,13 +40,16 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "ConnectorDefs",
-  setup() {
+  props: {
+    export: Boolean,
+  },
+  setup(props) {
     return {
       colours: Object.entries({
         "": "currentColor",
-        "error-": "#f44336",
-        "active-": "#4caf50",
-        "selected-": "#0094ff",
+        "error-": props.export ? "currentColor" : "#f44336",
+        "active-": props.export ? "currentColor" : "#4caf50",
+        "selected-": props.export ? "currentColor" : "#0094ff",
       }),
     };
   },
