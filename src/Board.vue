@@ -170,7 +170,7 @@
         class="grow"
         :disabled="active"
         @click="onSaveClick"
-        title="Save to File"
+        title="Save as File"
       >
         Save
       </button>
@@ -186,7 +186,7 @@
         class="grow"
         :disabled="active"
         @click="onExportClick"
-        title="Export to SVG"
+        title="Export as SVG"
       >
         Export
       </button>
