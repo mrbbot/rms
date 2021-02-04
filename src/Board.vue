@@ -21,6 +21,7 @@
         :x="x"
         :y="40"
         :template="tmpl"
+        :light="tmpl.type === 'CMT'"
       >
         <NodeContentsRegister v-if="tmpl.type === 'REG'">
           <template v-slot:sup>{{ tmpl.op === "+" ? "+" : "–" }}</template>
@@ -89,6 +90,7 @@
             ? []
             : nodeTextDirections
         "
+        :light="node.type === 'CMT'"
       >
         <NodeContentsRegister v-if="node.type === 'REG'">
           <template v-slot:sup>{{ node.op === "+" ? "+" : "–" }}</template>
@@ -619,10 +621,13 @@ svg.canvas {
   background-color: white;
 
   .get-started {
-    fill: #666666;
+    fill: #999999;
   }
 
   .node {
+    &.light {
+      color: #999999;
+    }
     &.active {
       color: #4caf50;
     }

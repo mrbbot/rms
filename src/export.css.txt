@@ -24,3 +24,6 @@
 .connection-point {
     fill: transparent;
 }
+.light {
+    color: #999999;
+}

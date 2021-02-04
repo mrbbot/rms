@@ -1,7 +1,7 @@
 <template>
   <g
     class="node"
-    :class="{ selected, active }"
+    :class="{ selected, active, light }"
     :transform="transform"
     :data-id="id"
     @mousedown="onMouseDown"
@@ -36,6 +36,7 @@ export default defineComponent({
     y: { required: true },
     directions: { type: Array },
     template: Object,
+    light: Boolean,
   },
   setup() {
     return { nodeConnectionPointRadius };
