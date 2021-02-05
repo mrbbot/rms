@@ -29,6 +29,7 @@ interface NodeContentsRegister {
 interface NodeContentsComment {
   type: "CMT";
   comment: string;
+  new?: true;
 }
 
 interface NodeBase {

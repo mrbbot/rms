@@ -310,7 +310,7 @@ export default defineComponent({
         [100, { type: "REG", op: "-", index: 0 }],
         [190, { type: "START" }],
         [310, { type: "HALT" }],
-        [424, { type: "CMT", comment: "COMMENT" }],
+        [424, { type: "CMT", comment: "COMMENT", new: true }],
       ],
       selectionBoundingBox,
       renderableNodesConnectors,
@@ -557,6 +557,10 @@ export default defineComponent({
           const newIndex = parseInt(index);
           if (newIndex <= 99) node.index = newIndex;
         } else if (node.type === "CMT") {
+          if (node.new) {
+            delete node.new;
+            node.comment = "";
+          }
           if (e.key.length === 1) {
             node.comment += e.key;
           } else if (e.key === "Backspace") {
