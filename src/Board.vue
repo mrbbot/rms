@@ -23,10 +23,11 @@
         :template="tmpl"
         :light="tmpl.type === 'CMT'"
       >
-        <NodeContentsRegister v-if="tmpl.type === 'REG'">
-          <template v-slot:sup>{{ tmpl.op === "+" ? "+" : "–" }}</template>
-          <template v-slot:sub>{{ tmpl.index }}</template>
-        </NodeContentsRegister>
+        <NodeContentsRegister
+          v-if="tmpl.type === 'REG'"
+          :op="tmpl.op === '+' ? '+' : '–'"
+          :index="tmpl.index"
+        />
         <NodeContentsComment
           v-else-if="tmpl.type === 'CMT'"
           :text="tmpl.comment"
@@ -92,10 +93,11 @@
         "
         :light="node.type === 'CMT'"
       >
-        <NodeContentsRegister v-if="node.type === 'REG'">
-          <template v-slot:sup>{{ node.op === "+" ? "+" : "–" }}</template>
-          <template v-slot:sub>{{ node.index }}</template>
-        </NodeContentsRegister>
+        <NodeContentsRegister
+          v-if="node.type === 'REG'"
+          :op="node.op === '+' ? '+' : '–'"
+          :index="node.index"
+        />
         <NodeContentsComment
           v-else-if="node.type === 'CMT'"
           :text="node.comment"
@@ -217,21 +219,19 @@
     </div>
     <hr />
     <div class="row">
-      <svg class="canvas" width="40" :height="30 * registers.length">
+      <svg class="canvas" width="40" :height="30 * registerIndices.length">
         <g
-          v-for="register in registers"
+          v-for="register in registerIndices"
           :key="register.index"
           :transform="register.transform"
           :class="{ active: activeRegister === register.index }"
         >
-          <NodeContentsRegister>
-            <template v-slot:sub>{{ register.index }}</template>
-          </NodeContentsRegister>
+          <NodeContentsRegister :index="register.index" />
         </g>
       </svg>
       <div class="grow column">
         <input
-          v-for="register in registers"
+          v-for="register in registerIndices"
           :key="register.index"
           type="number"
           placeholder="0"
@@ -266,9 +266,9 @@ import {
   RenderableConnector,
   selectedIds,
   movingNodeGridCoords,
-  maxRegisterIndex,
   active,
   nodeBoundingBoxes,
+  registerIndices,
 } from "./components/store";
 import { registerContents, reset, step, playPause } from "./components/machine";
 import { save, load, copyData, pasteData, persist } from "./components/data";
@@ -306,8 +306,8 @@ export default defineComponent({
       nodeRegisterDirections,
       gridSpacing,
       nodeTemplates: [
-        [40, { type: "REG", op: "+", index: 0 }],
-        [100, { type: "REG", op: "-", index: 0 }],
+        [40, { type: "REG", op: "+", index: "0" }],
+        [100, { type: "REG", op: "-", index: "0" }],
         [190, { type: "START" }],
         [310, { type: "HALT" }],
         [424, { type: "CMT", comment: "COMMENT", new: true }],
@@ -316,8 +316,8 @@ export default defineComponent({
       renderableNodesConnectors,
       nodeConnectionPointRadius,
       mouseGridCoords,
-      maxRegisterIndex,
       registerContents,
+      registerIndices,
       active,
       reset,
       step,
@@ -351,12 +351,6 @@ export default defineComponent({
         x2: store.mouseX - store.viewportX,
         y2: store.mouseY - store.viewportY,
       };
-    },
-    registers() {
-      return Array.from(Array(maxRegisterIndex.value + 1)).map((_, i) => ({
-        index: i,
-        transform: `translate(15,${i * 30 + 15})`,
-      }));
     },
     activeRegister() {
       if (store.activeNode === undefined) return undefined;
@@ -548,14 +542,15 @@ export default defineComponent({
         const node = store.nodes[store.selected.values().next().value];
         if (node === undefined) return;
         if (node.type === "REG") {
-          let index = node.index.toString();
           if (!isNaN(parseInt(e.key))) {
-            index += e.key;
+            const newIndex = parseInt(node.index + e.key);
+            if (newIndex <= 99) node.index = newIndex.toString();
+          } else if (e.key.length === 1) {
+            const letter = e.key.toUpperCase();
+            if ("A" <= letter && letter <= "Z") node.index = letter;
           } else if (e.key === "Backspace") {
-            index = index.substring(0, index.length - 1) || "0";
+            node.index = node.index.substring(0, node.index.length - 1) || "0";
           }
-          const newIndex = parseInt(index);
-          if (newIndex <= 99) node.index = newIndex;
         } else if (node.type === "CMT") {
           if (node.new) {
             delete node.new;

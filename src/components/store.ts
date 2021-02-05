@@ -23,7 +23,7 @@ interface NodeContentsHalt {
 interface NodeContentsRegister {
   type: "REG";
   op: "+" | "-";
-  index: number;
+  index: string;
 }
 
 interface NodeContentsComment {
@@ -62,7 +62,7 @@ export interface RenderableConnector extends Connector {
   y2: number;
 }
 
-export type RegisterContents = { [index: number]: number | undefined };
+export type RegisterContents = { [index: string]: number | undefined };
 
 export interface Store {
   name: string;
@@ -130,12 +130,26 @@ watchEffect(() => {
   document.title = `RMs${name ? `: ${name}` : ""}`;
 });
 
-export const maxRegisterIndex = computed(() => {
-  return Object.values(store.nodes).reduce(
-    (maxIndex, node) =>
-      node.type === "REG" ? Math.max(maxIndex, node.index) : maxIndex,
-    -1
-  );
+export const registerIndices = computed(() => {
+  const alphabeticalIndices = new Set<string>();
+  let maxNumericalIndex = -1;
+  for (const node of Object.values(store.nodes)) {
+    if (node.type === "REG") {
+      const index = parseInt(node.index);
+      if (isNaN(index)) {
+        alphabeticalIndices.add(node.index);
+      } else {
+        maxNumericalIndex = Math.max(maxNumericalIndex, index);
+      }
+    }
+  }
+  return Array.from<string | number>(alphabeticalIndices.values())
+    .sort()
+    .concat(Array.from(Array(maxNumericalIndex + 1).keys()))
+    .map((index, i) => ({
+      index: index.toString(),
+      transform: `translate(15,${i * 30 + 15})`,
+    }));
 });
 
 export const renderableNodesConnectors = computed(() => {

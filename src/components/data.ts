@@ -61,6 +61,9 @@ export function load(data: SavedData, fileName?: string) {
     data.name ||
     (fileName ? fileName.substring(0, fileName.lastIndexOf(".")) : "");
   for (const node of data.nodes) {
+    // Indices used to be stored as numbers, so make sure they're a string
+    if (node.type === "REG") node.index = node.index.toString();
+
     store.nodes[node.id] = node;
     nodeXTotal += node.x;
     nodeYTotal += node.y;
@@ -99,6 +102,7 @@ export function load(data: SavedData, fileName?: string) {
 export function persist() {
   console.log("Persisting");
   const data = save(true);
+  console.log(JSON.stringify(data, null, 2));
   // noinspection JSIgnoredPromiseFromCall
   set("data", JSON.stringify(data));
 }

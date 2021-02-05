@@ -9,25 +9,15 @@ export const registerContents = reactive(
     {
       get(target, key): any {
         if (key === Symbol.toStringTag) return undefined;
-        key = parseInt(key as any);
-        if (isNaN(key)) {
-          return undefined;
-        } else {
-          return target[key] || "";
-        }
+        return target[key as string] || "";
       },
       set(target, key, value): boolean {
-        key = parseInt(key as any);
-        if (isNaN(key)) {
-          return false;
+        if (value) {
+          target[key as string] = Math.abs(value);
         } else {
-          if (value) {
-            target[key] = Math.abs(value);
-          } else {
-            delete target[key];
-          }
-          return true;
+          delete target[key as string];
         }
+        return true;
       },
     }
   )
@@ -38,7 +28,7 @@ export function loadRegisterContents(contents: RegisterContents) {
     delete registerContents[key as any];
   }
   for (const [index, value] of Object.entries(contents)) {
-    registerContents[index as any] = value;
+    registerContents[index.toString()] = value;
   }
 }
 
