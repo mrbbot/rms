@@ -9,6 +9,8 @@ import {
   directionOffsets,
   nodeCommentWidth,
   nodeCommentHeight,
+  nodeDummyRadius,
+  dummyDivisionFactor,
 } from "./constants";
 import { boxBox, boxLine } from "intersects";
 
@@ -32,6 +34,10 @@ interface NodeContentsComment {
   new?: true;
 }
 
+interface NodeContentsDummy {
+  type: "DUM";
+}
+
 interface NodeBase {
   id: number;
   x: number;
@@ -44,6 +50,7 @@ export type Node = NodeBase &
     | NodeContentsHalt
     | NodeContentsRegister
     | NodeContentsComment
+    | NodeContentsDummy
   );
 
 export interface Connector {
@@ -58,8 +65,10 @@ export interface Connector {
 export interface RenderableConnector extends Connector {
   x1: number;
   y1: number;
+  dummy1: boolean;
   x2: number;
   y2: number;
+  dummy2: boolean;
 }
 
 export type RegisterContents = { [index: string]: number | undefined };
@@ -182,8 +191,10 @@ export const renderableNodesConnectors = computed(() => {
       ...connector,
       x1: n1.x * gridSpacing + n1Offset * spacingOffsets[connector.d1].x,
       y1: n1.y * gridSpacing + n1Offset * spacingOffsets[connector.d1].y,
+      dummy1: n1.type === "DUM",
       x2: n2.x * gridSpacing + n2Offset * spacingOffsets[connector.d2].x,
       y2: n2.y * gridSpacing + n2Offset * spacingOffsets[connector.d2].y,
+      dummy2: n2.type === "DUM",
     };
   });
 
@@ -229,10 +240,14 @@ export const selectionBoundingBox = computed(() => {
 export const nodeBoundingBoxes = computed(() => {
   const nodes = renderableNodesConnectors.value.nodes;
   const nodeSize = 2 * nodeRadius;
+  const nodeDummySize = 2 * nodeDummyRadius;
   return nodes.map((node) => {
     let width = nodeSize,
       height = nodeSize;
-    if (node.type === "CMT") {
+    if (node.type === "DUM") {
+      width = nodeDummySize;
+      height = nodeDummySize;
+    } else if (node.type === "CMT") {
       width = nodeCommentWidth(node.comment);
       height = nodeCommentHeight;
     } else if (node.type !== "REG") {
@@ -265,12 +280,20 @@ export const selectedIds = computed(() => {
   }
 
   for (const connector of connectors) {
-    const o1 = directionOffsets[connector.d1];
-    const o2 = directionOffsets[connector.d2];
-    const x1 = connector.x1 + o1.x;
-    const y1 = connector.y1 + o1.y;
-    const x2 = connector.x2 + o2.x;
-    const y2 = connector.y2 + o2.y;
+    let { x: o1x, y: o1y } = directionOffsets[connector.d1];
+    let { x: o2x, y: o2y } = directionOffsets[connector.d2];
+    if (connector.dummy1) {
+      o1x /= dummyDivisionFactor;
+      o1y /= dummyDivisionFactor;
+    }
+    if (connector.dummy2) {
+      o2x /= dummyDivisionFactor;
+      o2y /= dummyDivisionFactor;
+    }
+    const x1 = connector.x1 + o1x;
+    const y1 = connector.y1 + o1y;
+    const x2 = connector.x2 + o2x;
+    const y2 = connector.y2 + o2y;
     boxLine(x, y, width, height, x1, y1, x2, y2) && selected.push(connector.id);
   }
 

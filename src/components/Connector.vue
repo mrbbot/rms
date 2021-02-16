@@ -14,7 +14,12 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { Direction, directionOffsets, spacingOffsets } from "./constants";
+import {
+  Direction,
+  directionOffsets,
+  dummyDivisionFactor,
+  spacingOffsets,
+} from "./constants";
 import { store, storeNodeConnectors } from "./store";
 
 export default defineComponent({
@@ -24,22 +29,31 @@ export default defineComponent({
     x1: { type: Number, required: true },
     y1: { type: Number, required: true },
     d1: { type: Number, required: true },
+    dummy1: { type: Boolean, required: true },
     x2: { type: Number, required: true },
     y2: { type: Number, required: true },
     d2: { type: Number, required: true },
-    // curve: Boolean, // M 130 200 C 150 210, 200 210, 220 200
+    dummy2: { type: Boolean, required: true },
     alt: Boolean,
     creating: Boolean,
   },
   computed: {
     path(): string {
-      const o1 = directionOffsets[this.d1 as Direction];
-      const o2 = directionOffsets[this.d2 as Direction];
+      let { x: o1x, y: o1y } = directionOffsets[this.d1 as Direction];
+      let { x: o2x, y: o2y } = directionOffsets[this.d2 as Direction];
+      if (this.dummy1) {
+        o1x /= dummyDivisionFactor;
+        o1y /= dummyDivisionFactor;
+      }
+      if (this.dummy2) {
+        o2x /= dummyDivisionFactor;
+        o2y /= dummyDivisionFactor;
+      }
 
-      const x1 = this.x1 + o1.x;
-      const y1 = this.y1 + o1.y;
-      const x2 = this.x2 + o2.x;
-      const y2 = this.y2 + o2.y;
+      const x1 = this.x1 + o1x;
+      const y1 = this.y1 + o1y;
+      const x2 = this.x2 + o2x;
+      const y2 = this.y2 + o2y;
 
       if (x1 === x2 && y1 === y2) {
         // assert(d1 === d2 && o1 === o2)
@@ -55,9 +69,9 @@ export default defineComponent({
         const sy = spacing.y * 0.5;
 
         // Control point origins
-        const o = directionOffsets[d as Direction];
-        const cx = x1 + o.x;
-        const cy = y1 + o.y;
+        const { x: ox, y: oy } = directionOffsets[d as Direction];
+        const cx = x1 + ox;
+        const cy = y1 + oy;
         const cxs = sx * 4;
         const cys = sy * 4;
 

@@ -48,7 +48,7 @@ export default defineComponent({
     return { nodeRadius };
   },
   computed: {
-    alphabetic() {
+    alphabetic(): boolean {
       return "A" <= this.index && this.index <= "Z";
     },
   },

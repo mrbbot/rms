@@ -3,6 +3,8 @@ export const gridSpacing = 130;
 export const nodeRadius = 30;
 export const nodeConnectionPointRadius = 8;
 export const nodeConnectorSpacing = 12;
+export const nodeDummyRadius = 6;
+export const dummyDivisionFactor = nodeRadius / nodeDummyRadius;
 
 export const nodeTextWidth = nodeRadius * 4;
 export const nodeTextHeight = nodeRadius * 2;

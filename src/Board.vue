@@ -32,6 +32,7 @@
           v-else-if="tmpl.type === 'CMT'"
           :text="tmpl.comment"
         />
+        <NodeContentsDummy v-else-if="tmpl.type === 'DUM'" />
         <NodeContentsText v-else :text="tmpl.type" />
       </Node>
     </g>
@@ -72,9 +73,11 @@
         :x1="connector.x1"
         :y1="connector.y1"
         :d1="connector.d1"
+        :dummy1="connector.dummy1"
         :x2="connector.x2"
         :y2="connector.y2"
         :d2="connector.d2"
+        :dummy2="connector.dummy2"
         :alt="connector.alt"
       />
 
@@ -85,7 +88,7 @@
         :x="node.x"
         :y="node.y"
         :directions="
-          node.type === 'REG'
+          node.type === 'REG' || node.type === 'DUM'
             ? nodeRegisterDirections
             : node.type === 'CMT'
             ? []
@@ -102,6 +105,7 @@
           v-else-if="node.type === 'CMT'"
           :text="node.comment"
         />
+        <NodeContentsDummy v-else-if="node.type === 'DUM'" />
         <NodeContentsText v-else :text="node.type" />
       </Node>
 
@@ -111,9 +115,11 @@
         :x1="creatingConnector.x1"
         :y1="creatingConnector.y1"
         :d1="creatingConnector.d1"
+        :dummy1="creatingConnector.dummy1"
         :x2="creatingConnector.x2"
         :y2="creatingConnector.y2"
         :d2="creatingConnector.d2"
+        :dummy2="creatingConnector.dummy2"
         :alt="creatingConnector.alt"
         creating
       />
@@ -285,12 +291,14 @@ import NodeContentsRegister from "./components/NodeContentsRegister.vue";
 import NodeComponent from "./components/Node.vue";
 import NodeContentsComment from "./components/NodeContentsComment.vue";
 import exportCssPath from "./export.css.txt";
+import NodeContentsDummy from "./components/NodeContentsDummy.vue";
 
 let exportCss: string | undefined = undefined;
 
 export default defineComponent({
   name: "Board",
   components: {
+    NodeContentsDummy,
     NodeContentsComment,
     Node: NodeComponent,
     NodeContentsRegister,
@@ -311,6 +319,7 @@ export default defineComponent({
         [190, { type: "START" }],
         [310, { type: "HALT" }],
         [424, { type: "CMT", comment: "COMMENT", new: true }],
+        [508, { type: "DUM" }],
       ],
       selectionBoundingBox,
       renderableNodesConnectors,
@@ -343,8 +352,10 @@ export default defineComponent({
         id: -2,
         n1: -1,
         d1: store.connectorStartDirection,
+        dummy1: startNode.type === "DUM",
         n2: -1,
         d2: Direction.NONE,
+        dummy2: false,
         alt: store.shiftKey,
         x1: startNode.x * gridSpacing,
         y1: startNode.y * gridSpacing,

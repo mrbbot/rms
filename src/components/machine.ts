@@ -75,7 +75,7 @@ export function step(): boolean {
   const connected = storeNodeConnectors.value.nodeConnectedNodes[node.id];
   if (connected === undefined) return false;
 
-  if (node.type === "START" && connected.primary) {
+  if ((node.type === "START" || node.type === "DUM") && connected.primary) {
     store.activeConnector = connected.primary.via;
     store.activeNode = connected.primary.nodeId;
     return true;
